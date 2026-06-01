@@ -25,6 +25,7 @@ kaggle = "*"
 cloudinary = "*"
 stripe = "*"
 pandas = "*"
+google-genai = "*"
 
 [requires]
 python_version = "3.13"
