@@ -309,4 +309,3 @@ def get_my_subscription():
         "active": True,
         "planId": sub.plan_id
     }), 200
-Enviar un mensaje a Javier Seiglie
