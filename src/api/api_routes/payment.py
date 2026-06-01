@@ -17,7 +17,7 @@ from api.models import (
     PaymentStatus,
 )
 
-from datetime import datetime, UTC, timedelta
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from flask_jwt_extended import get_jwt_identity, jwt_required  # type: ignore
 
@@ -101,7 +101,7 @@ def create_checkout_session():
             user_id=user_id,
             total_price=Decimal("0.00"),
             status="pending",
-            created_at=datetime.now(UTC),
+            created_at=datetime.now(timezone.utc),
         )
 
         db.session.add(order)
@@ -232,8 +232,8 @@ def stripe_webhook():
                 plan_id=plan_id,
                 active=True,
                 stripe_subscription_id=stripe_subscription_id,
-                created_at=datetime.now(UTC),
-                cancel_day=datetime.now(UTC) + timedelta(days=30),
+                created_at=datetime.now(timezone.utc),
+                cancel_day=datetime.now(timezone.utc) + timedelta(days=30),
             )
 
             db.session.add(subscription)
@@ -272,12 +272,12 @@ def stripe_webhook():
         payment_method="stripe",
         status=PaymentStatus.paid,
         stripe_session_id=stripe_session_id,
-        created_at=datetime.now(UTC),
+        created_at=datetime.now(timezone.utc),
     )
 
     db.session.add(payment)
 
-    cart = Cart(user_id=order.user_id, created_at=datetime.now(UTC))
+    cart = Cart(user_id=order.user_id, created_at=datetime.now(timezone.utc))
 
     db.session.add(cart)
 
@@ -309,3 +309,4 @@ def get_my_subscription():
         "active": True,
         "planId": sub.plan_id
     }), 200
+Enviar un mensaje a Javier Seiglie
