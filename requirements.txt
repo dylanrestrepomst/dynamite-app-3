@@ -32,3 +32,7 @@ werkzeug==2.3.8
 wtforms==3.1.2
 google-generativeai==0.8.3
 stripe>=10.0.0
+typing-extensions==4.12.2
+pandas==2.2.2
+kaggle==1.6.17
+kagglehub==0.3.10
