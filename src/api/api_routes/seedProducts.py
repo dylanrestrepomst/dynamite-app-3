@@ -24,7 +24,7 @@ def seed_products_from_csv(path: str):
             price=row["price"],
             stock=100,
             category=row["product_category"],
-            image="https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=400"
+            image="https://slack-imgs.com/?c=1&o1=ro&url=https%3A%2F%2Fres.cloudinary.com%2Fdr5mzsq8w%2Fimage%2Fupload%2Fv1780427367%2Fshopping_dwnai3.webp"
         )
         products.append(product)
 
