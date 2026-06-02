@@ -23,24 +23,20 @@ from flask_jwt_extended import get_jwt_identity, jwt_required  # type: ignore
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
+FRONTEND_URL = "https://sample-service-name-cwib.onrender.com"
+
 
 # =========================
 # SUBSCRIPTIONS CHECKOUT
 # =========================
 
-
 @api.route("/create-subscription-checkout", methods=["POST"])
 @jwt_required()
 def create_subscription_checkout():
-
     try:
-
         data = request.get_json()
-
         plan_id = data.get("id")
-
         user_id = int(get_jwt_identity())
-
         plan = SubscriptionPlan.query.get(plan_id)
 
         if not plan:
@@ -54,18 +50,15 @@ def create_subscription_checkout():
                 {
                     "price_data": {
                         "currency": "eur",
-                        "product_data": {
-                            "name": plan.name,
-                            # "description": plan.description,
-                        },
+                        "product_data": {"name": plan.name},
                         "unit_amount": int(plan.price * 100),
                         "recurring": {"interval": "month"},
                     },
                     "quantity": 1,
                 }
             ],
-            success_url=f"https://ominous-enigma-97r6pr7vprrjc77wq-3000.app.github.dev/successful-payment?planId={plan.id}&session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url="https://ominous-enigma-97r6pr7vprrjc77wq-3000.app.github.dev/payment-error",
+            success_url=f"{FRONTEND_URL}/successful-payment?planId={plan.id}&session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{FRONTEND_URL}/payment-error",
             metadata={"plan_id": str(plan.id), "user_id": str(user_id)},
         )
 
@@ -80,21 +73,14 @@ def create_subscription_checkout():
 # NORMAL PRODUCTS CHECKOUT
 # =========================
 
-
 @api.route("/create-checkout-session", methods=["POST"])
 @jwt_required()
 def create_checkout_session():
-
     try:
-
         data = request.get_json()
-
         products = data.get("products", [])
-
         user_id = int(get_jwt_identity())
-
         line_items = []
-
         total = Decimal("0.00")
 
         order = Order(
@@ -103,14 +89,11 @@ def create_checkout_session():
             status="pending",
             created_at=datetime.now(timezone.utc),
         )
-
         db.session.add(order)
         db.session.flush()
 
         for item in products:
-
             product_id = int(item["id"])
-
             product = Product.query.get(product_id)
 
             if not product:
@@ -130,24 +113,18 @@ def create_checkout_session():
                 quantity=quantity,
                 price=product.price,
             )
-
             db.session.add(order_item)
 
-            line_items.append(
-                {
-                    "price_data": {
-                        "currency": "eur",
-                        "product_data": {
-                            "name": product.name,
-                        },
-                        "unit_amount": int(product.price * 100),
-                    },
-                    "quantity": quantity,
-                }
-            )
+            line_items.append({
+                "price_data": {
+                    "currency": "eur",
+                    "product_data": {"name": product.name},
+                    "unit_amount": int(product.price * 100),
+                },
+                "quantity": quantity,
+            })
 
         order.total_price = total
-
         db.session.flush()
 
         session = stripe.checkout.Session.create(
@@ -155,25 +132,19 @@ def create_checkout_session():
             mode="payment",
             line_items=line_items,
             customer_email=data.get("email"),
-            success_url="https://ominous-enigma-97r6pr7vprrjc77wq-3000.app.github.dev/successful-payment",
-            cancel_url="https://ominous-enigma-97r6pr7vprrjc77wq-3000.app.github.dev/payment-error",
-            metadata={
-                "order_id": str(order.id),
-            },
+            success_url=f"{FRONTEND_URL}/successful-payment",
+            cancel_url=f"{FRONTEND_URL}/payment-error",
+            metadata={"order_id": str(order.id)},
         )
 
         order.stripe_session_id = session.id
-
         db.session.commit()
 
         return jsonify({"url": session.url})
 
     except Exception as e:
-
         db.session.rollback()
-
         print("CHECKOUT ERROR:", repr(e))
-
         return jsonify({"error": str(e)}), 400
 
 
@@ -181,50 +152,28 @@ def create_checkout_session():
 # STRIPE WEBHOOK
 # =========================
 
-
 @api.route("/stripe-webhook", methods=["POST"])
 def stripe_webhook():
-
     endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
-
     sig_header = request.headers.get("Stripe-Signature")
-
     payload = request.get_data(cache=False)
 
     try:
-
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, endpoint_secret)
-
+        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
     except Exception as e:
-
         return jsonify({"error": str(e)}), 400
-
-    # print("WEBHOOK HIT")
-    # print(event["type"])
 
     if event["type"] != "checkout.session.completed":
         return jsonify({"status": "ignored"}), 200
 
     session = event["data"]["object"].to_dict()
 
-    # print("EVENT RECEIVED:", event["type"])
-    # print("SESSION MODE:", session["mode"])
-
-    # =========================
     # SUBSCRIPTION PAYMENT
-    # =========================
-
     if session["mode"] == "subscription":
-
         try:
-
             metadata = session.get("metadata", {})
-
             user_id = int(metadata["user_id"])
-
             plan_id = int(metadata["plan_id"])
-
             stripe_subscription_id = session.get("subscription")
 
             subscription = Subscription(
@@ -235,7 +184,6 @@ def stripe_webhook():
                 created_at=datetime.now(timezone.utc),
                 cancel_day=datetime.now(timezone.utc) + timedelta(days=30),
             )
-
             db.session.add(subscription)
             db.session.commit()
 
@@ -245,12 +193,9 @@ def stripe_webhook():
             db.session.rollback()
             print("SUBSCRIPTION WEBHOOK ERROR:", repr(e))
             return jsonify({"error": str(e)}), 500
-    # =========================
+
     # NORMAL PAYMENT
-    # =========================
-
     stripe_session_id = session["id"]
-
     order = Order.query.filter_by(stripe_session_id=stripe_session_id).first()
 
     if not order:
@@ -258,11 +203,8 @@ def stripe_webhook():
 
     order.status = "paid"
 
-    # descontar stock
     for item in order.order_items:
-
         product = item.product
-
         product.stock -= item.quantity
 
     payment = Payment(
@@ -274,38 +216,27 @@ def stripe_webhook():
         stripe_session_id=stripe_session_id,
         created_at=datetime.now(timezone.utc),
     )
-
     db.session.add(payment)
 
     cart = Cart(user_id=order.user_id, created_at=datetime.now(timezone.utc))
-
     db.session.add(cart)
-
     db.session.flush()
 
     for item in order.order_items:
-
-        cart_item = CartItem(
-            cart_id=cart.id, product_id=item.product_id, quantity=item.quantity
-        )
-
+        cart_item = CartItem(cart_id=cart.id, product_id=item.product_id, quantity=item.quantity)
         db.session.add(cart_item)
 
     db.session.commit()
-
     return jsonify({"status": "payment success"}), 200
+
 
 @api.route("/my-subscription", methods=["GET"])
 @jwt_required()
 def get_my_subscription():
     user_id = get_jwt_identity()
-
     sub = Subscription.query.filter_by(user_id=user_id, active=True).first()
 
     if not sub:
         return jsonify({"active": False}), 404
 
-    return jsonify({
-        "active": True,
-        "planId": sub.plan_id
-    }), 200
+    return jsonify({"active": True, "planId": sub.plan_id}), 200
