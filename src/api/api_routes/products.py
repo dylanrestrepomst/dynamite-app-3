@@ -7,7 +7,7 @@ import pandas as pd
 
 
 
-@api.route("/seed-products", methods=["POST"])
+@api.route("/seed-products", methods=["GET"])
 def seed_products():
 
 
