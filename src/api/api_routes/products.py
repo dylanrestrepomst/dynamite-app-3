@@ -9,18 +9,14 @@ import pandas as pd
 
 @api.route("/seed-products", methods=["GET"])
 def seed_products():
-
-
-    from api.api_routes.seedProducts import seed_products_from_csv
-
-    count = seed_products_from_csv(
-        "src/front/datasets/bodybuilding_nutrition_products.csv"
-    )
-
-    return jsonify({
-        "success": True,
-        "msg": f"{count} products inserted"
-    }), 200
+    try:
+        from api.api_routes.seedProducts import seed_products_from_csv
+        count = seed_products_from_csv(
+            "src/front/datasets/bodybuilding_nutrition_products.csv"
+        )
+        return jsonify({"success": True, "msg": f"{count} products inserted"}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 # ADD A NEW PRODUCT TO THE BBDD
 
 
