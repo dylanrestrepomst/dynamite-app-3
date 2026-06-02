@@ -205,7 +205,7 @@ const Misplanes = () => {
                 <p className="text-secondary mb-3">Aún no tienes planes generados</p>
                 <button
                   className="btn btn-danger rounded-pill px-4"
-                  onClick={() => navigate("/planes_de_suscripcion")}
+                  onClick={() => navigate("/subscription-plans")}
                 >
                   Crear mi primer plan
                 </button>
