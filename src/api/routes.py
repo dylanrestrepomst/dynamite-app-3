@@ -138,3 +138,10 @@ def auth():
         return jsonify({
             "success": False,
             "data": "internal server error"}), 500
+# seed test-comands
+
+@api.route('/seed-test-data', methods=['GET'])
+def seed_test_data():
+    from api.commands import insert_test_data_logic
+    result = insert_test_data_logic()
+    return jsonify({"success": True, "data": result}), 200
