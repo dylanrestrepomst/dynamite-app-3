@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify  # type: ignore
 from api.models import db, User, Product, Order, OrderItem, SubscriptionPlan, Subscription, Payment, Cart, CartItem
 from sqlalchemy import select  # type: ignore
@@ -6,27 +7,29 @@ from api.blueprint import api
 import pandas as pd
 
 
-
 @api.route("/seed-products", methods=["GET"])
 def seed_products():
     try:
         from api.api_routes.seedProducts import seed_products_from_csv
-        count = seed_products_from_csv(
-            "src/front/datasets/bodybuilding_nutrition_products.csv"
+        # ruta absoluta al CSV basada en la ubicacion de este archivo
+        csv_path = os.path.join(
+            os.path.dirname(__file__),
+            "..", "..", "front", "datasets", "bodybuilding_nutrition_products.csv"
         )
+        count = seed_products_from_csv(csv_path)
         return jsonify({"success": True, "msg": f"{count} products inserted"}), 200
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
 # ADD A NEW PRODUCT TO THE BBDD
-
-
 @api.route("/products", methods=["POST"])
-@jwt_required()  # PROTECTING ROUTE STEP 1
+@jwt_required()
 def new_product():
-    user_id = get_jwt_identity()  # PROTECTING ROUTE STEP 2
-    user = db.session.get(User, user_id)  # PROTECTING ROUTE
+    user_id = get_jwt_identity()
+    user = db.session.get(User, user_id)
 
-    if user.role != "admin":  # PROTECTING ROUTE STEP 3
+    if user.role != "admin":
         return jsonify({"success": False, "msg": "forbidden"}), 403
 
     body = request.get_json()
@@ -45,37 +48,25 @@ def new_product():
     db.session.commit()
     return jsonify({"success": True, "data": new_product.serialize()}), 200
 
+
 # GET A PRODUCT BY HIS ID
-
-
 @api.route("/product/<int:id>", methods=["GET"])
-# @jwt_required()
 def get_product(id):
-    # user_id = get_jwt_identity()
-    # user = db.session.get(User, user_id)
-
-    # if user.role != "admin":
-    #   return jsonify({"success": False, "msg": "forbidden"}), 403
-
     product = db.session.get(Product, id)
-
     if not product:
         return jsonify({"success": False, "msg": "not found"}), 404
-
     return jsonify({"success": True, "data": product.serialize()}), 200
 
+
 # GET ALL PRODUCTS
-
-
 @api.route("/products", methods=["GET"])
 def get_all_products():
     products = db.session.execute(select(Product)).scalars().all()
     transform = [product.serialize() for product in products]
     return jsonify({"success": True, "data": transform}), 200
 
+
 # UPDATE PRODUCT
-
-
 @api.route("/product/update/<int:id>", methods=["PUT"])
 @jwt_required()
 def modify_product(id):
@@ -86,12 +77,10 @@ def modify_product(id):
         return jsonify({"success": False, "msg": "forbidden"}), 403
 
     product = db.session.get(Product, id)
-
     if not product:
         return jsonify({"success": False, "data": "not found"}), 404
 
     body = request.get_json()
-
     product.name = body["name"] if body["name"] else product.name
     product.description = body["description"] if body["description"] else product.description
     product.price = body["price"] if body["price"] else product.price
@@ -100,12 +89,10 @@ def modify_product(id):
     product.image = body["image"] if body["image"] else product.image
 
     db.session.commit()
-
     return jsonify({"success": True, "data": product.serialize()})
 
+
 # DELETE PRODUCT
-
-
 @api.route("/product/delete/<int:id>", methods=["DELETE"])
 @jwt_required()
 def delete_product(id):
@@ -116,7 +103,6 @@ def delete_product(id):
         return jsonify({"success": False, "msg": "forbidden"}), 403
 
     product = db.session.get(Product, id)
-
     if not product:
         return jsonify({"success": False, "msg": "not found"}), 404
 
